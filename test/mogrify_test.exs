@@ -189,7 +189,7 @@ defmodule MogrifyTest do
     assert File.exists?(path) == false
   end
 
-  test "binary output" do
+  test "binary output create/2" do
     image =
       %Image{}
       |> custom("pango", ~S(<span foreground="yellow">hello test</span>))
@@ -199,7 +199,7 @@ defmodule MogrifyTest do
     assert is_binary(image.buffer)
   end
 
-  test "binary output using into: IO.stream/2" do
+  test "binary output create/2 using into: IO.stream/2" do
     stdout =
       capture_io(fn ->
         image =
@@ -214,7 +214,7 @@ defmodule MogrifyTest do
     assert is_binary(stdout)
   end
 
-  test "binary output buffer matches file output" do
+  test "binary output create/2 buffer matches file output" do
     image =
       %Image{}
       |> custom("pango", ~S(<span foreground="yellow">hello test</span>))
@@ -224,6 +224,16 @@ defmodule MogrifyTest do
 
     buf1 = result1.buffer
     {:ok, buf2} = File.read(result2.path)
+    assert buf1 == buf2
+  end
+
+  test "binary output save/2" do
+    image1 = open(@fixture) |> resize("100x100") |> save(buffer: true)
+    image2 = open(@fixture) |> resize("100x100") |> save
+
+    buf1 = image1.buffer
+    {:ok, buf2} = File.read(image2.path)
+    assert byte_size(buf1) == byte_size(buf2)
     assert buf1 == buf2
   end
 
