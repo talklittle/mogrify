@@ -156,7 +156,12 @@ defmodule Mogrify do
   end
 
   defp arguments_for_saving(image, path) do
-    base_arguments = ["-write", path, image.path]
+    write_option =
+      case path do
+        "-" -> "+write"  # avoid doubled output to STDOUT: https://github.com/ImageMagick/ImageMagick/issues/3676
+        _ -> "-write"
+      end
+    base_arguments = [write_option, path, image.path]
     arguments(image) ++ base_arguments
   end
 
