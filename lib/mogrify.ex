@@ -22,13 +22,23 @@ defmodule Mogrify do
 
   * `:path` - The output path of the image. Defaults to a temporary file.
   * `:in_place` - Overwrite the original image, ignoring `:path` option. Default `false`.
+  * `:buffer` - Pass `true` to write to Collectable in Image.buffer instead of file.
+  * `:into` - Used with `:buffer` to specify a Collectable. Defaults to `""`. See `System.cmd/3`.
   """
   def save(image, opts \\ []) do
     output_path = output_path_for(image, opts)
     create_folder_if_doesnt_exist!(output_path)
 
-    {_, 0} = cmd_mogrify(arguments_for_saving(image, output_path), stderr_to_stdout: true)
-    image_after_command(image, output_path)
+    cmd_opts = [stderr_to_stdout: true]
+
+    if opts[:buffer] do
+      cmd_opts = if opts[:into], do: cmd_opts ++ [into: opts[:into]], else: cmd_opts
+      {image_collectable, 0} = cmd_mogrify(arguments_for_saving(image, output_path), cmd_opts)
+      image_after_buffer_command(image, image_collectable)
+    else
+      {_, 0} = cmd_mogrify(arguments_for_saving(image, output_path), cmd_opts)
+      image_after_command(image, output_path)
+    end
   end
 
   @doc """
@@ -137,10 +147,11 @@ defmodule Mogrify do
   end
 
   defp output_path_for(image, save_opts) do
-    if Keyword.get(save_opts, :in_place) do
-      image.path
-    else
-      Keyword.get(save_opts, :path, temporary_path_for(image))
+    cond do
+      save_opts[:buffer] -> "-"
+      save_opts[:in_place] -> image.path
+      save_opts[:path] -> save_opts[:path]
+      true -> temporary_path_for(image)
     end
   end
 
